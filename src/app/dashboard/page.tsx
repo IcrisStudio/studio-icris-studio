@@ -17,18 +17,17 @@ import {
   Calendar,
   Wallet,
   ArrowUpRight,
+  Target,
+  Zap
 } from "lucide-react";
 import {
   Area,
   AreaChart,
-  Bar,
-  BarChart,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Cell,
 } from "recharts";
 import {
   Select,
@@ -53,31 +52,31 @@ export default function DashboardPage() {
     if (!metrics) return [];
     return [
       {
-        title: "Gross Revenue",
+        title: "Capital Reservoir",
         value: `NPR ${metrics.total_income.toLocaleString()}`,
-        description: "Confirmed receipts & paid tasks",
-        icon: <DollarSign className="h-3.5 w-3.5" />,
+        description: "Cumulative verified revenue",
+        icon: <DollarSign className="h-4 w-4" />,
         accent: "bg-emerald-500/10 text-emerald-600",
       },
       {
         title: "Retained Profit",
         value: `NPR ${metrics.net_profit.toLocaleString()}`,
-        description: "Revenue minus all overheads",
-        icon: <TrendingUp className="h-3.5 w-3.5" />,
+        description: "Net yield after all OpEx",
+        icon: <TrendingUp className="h-4 w-4" />,
         accent: "bg-blue-500/10 text-blue-600",
       },
       {
-        title: "OpEx (Expenses)",
+        title: "Burn Rate (OpEx)",
         value: `NPR ${metrics.total_expenses.toLocaleString()}`,
-        description: "Salaries and operational costs",
-        icon: <TrendingDown className="h-3.5 w-3.5" />,
+        description: "Operational expenditure",
+        icon: <TrendingDown className="h-4 w-4" />,
         accent: "bg-rose-500/10 text-rose-600",
       },
       {
-        title: "Ledger Payable",
+        title: "Ledger Liability",
         value: `NPR ${(metrics as any).pending_staff_payments.toLocaleString()}`,
-        description: "Awaiting staff disbursement",
-        icon: <Wallet className="h-3.5 w-3.5" />,
+        description: "Pending staff allocations",
+        icon: <Wallet className="h-4 w-4" />,
         accent: "bg-amber-500/10 text-amber-600",
       },
     ];
@@ -87,26 +86,21 @@ export default function DashboardPage() {
     if (!metrics) return [];
     const m = metrics as any;
     return [
-      { label: "Production Paid", value: m.task_payments_paid, color: "text-emerald-500" },
-      { label: "Production Pending", value: m.task_payments_pending, color: "text-amber-500" },
-      { label: "Staff Requests", value: m.requested_staff_payments, color: "text-indigo-500" },
-      { label: "Staff Settled", value: m.completed_staff_payments, color: "text-blue-500" },
+      { label: "Production Paid", value: m.task_payments_paid, color: "text-emerald-500", detail: "Settled production work" },
+      { label: "Production Pending", value: m.task_payments_pending, color: "text-amber-500", detail: "Work-in-progress liability" },
+      { label: "Staff Requests", value: m.requested_staff_payments, color: "text-indigo-500", detail: "Active payout tickets" },
+      { label: "Staff Settled", value: m.completed_staff_payments, color: "text-blue-500", detail: "Successfully disbursed" },
     ];
   }, [metrics]);
 
   if (!isAdmin) {
     return (
       <DashboardLayout>
-        <div className="flex h-[450px] flex-col items-center justify-center text-center space-y-3">
+        <div className="flex h-[450px] flex-col items-center justify-center text-center space-y-4">
           <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center text-destructive">
-            <AlertCircle size={20} />
+            <Target size={20} />
           </div>
-          <div>
-            <h2 className="text-lg font-bold tracking-tight">Security Restriction</h2>
-            <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-              Only administrative entities are authorized to access the studio data warehouse.
-            </p>
-          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">Biometric Verification Required</p>
         </div>
       </DashboardLayout>
     );
@@ -116,24 +110,24 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout>
-      <div className="container max-w-7xl animate-in fade-in duration-700 space-y-10 py-8">
+      <div className="container max-w-7xl animate-in fade-in duration-1000 space-y-12 py-10">
 
-        {/* Header Block */}
-        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between border-b pb-8">
-          <div className="space-y-1.5">
-            <h1 className="text-3xl font-black tracking-tightest uppercase font-sans">Studio Cockpit</h1>
-            <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] opacity-60">
-              <span className="flex items-center gap-1"><div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" /> Live Intelligence</span>
+        {/* Apple-Style Header */}
+        <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between border-b border-border/40 pb-10">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-black tracking-tighter uppercase font-sans">Control Center</h1>
+            <div className="flex items-center gap-4 text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-50">
+              <span className="flex items-center gap-2 font-black"><div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live System Monitor</span>
               <span>•</span>
-              <span>Icris Studio Internal v2.0</span>
+              <span>OS v2.4.0</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <Tabs value={timeRange} onValueChange={setTimeRange} className="hidden lg:block">
-              <TabsList className="h-10 rounded-lg bg-muted/40 p-1 border">
+              <TabsList className="h-11 rounded-xl bg-muted/30 p-1 border-none shadow-none ring-1 ring-border">
                 {['7d', '30d', '90d', 'all'].map((range) => (
-                  <TabsTrigger key={range} value={range} className="text-[10px] font-black uppercase px-4 h-8 rounded-md data-[state=active]:shadow-sm">
+                  <TabsTrigger key={range} value={range} className="text-[9px] font-black uppercase px-6 h-9 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-xl transition-all">
                     {range}
                   </TabsTrigger>
                 ))}
@@ -141,37 +135,37 @@ export default function DashboardPage() {
             </Tabs>
 
             <Select value={timeRange} onValueChange={setTimeRange}>
-              <SelectTrigger className="w-[140px] h-10 text-[10px] font-black uppercase rounded-lg border shadow-none bg-muted/5 sm:lg:hidden">
-                <Calendar className="mr-2 h-3.5 w-3.5 opacity-40" />
+              <SelectTrigger className="w-[150px] h-11 text-[10px] font-black uppercase rounded-xl border-none shadow-none bg-muted/30 lg:hidden ring-1 ring-border">
+                <Calendar className="mr-2 h-4 w-4 opacity-30" />
                 <SelectValue placeholder="Period" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border shadow-2xl">
-                <SelectItem value="7d" className="text-[10px] font-bold uppercase">Last 7 Days</SelectItem>
-                <SelectItem value="30d" className="text-[10px] font-bold uppercase">Last 30 Days</SelectItem>
-                <SelectItem value="90d" className="text-[10px] font-bold uppercase">Last 90 Days</SelectItem>
-                <SelectItem value="all" className="text-[10px] font-bold uppercase">Master History</SelectItem>
+              <SelectContent className="rounded-2xl border shadow-2xl">
+                <SelectItem value="7d" className="text-[10px] font-bold uppercase py-3 text-center">Last 7 Cycles</SelectItem>
+                <SelectItem value="30d" className="text-[10px] font-bold uppercase py-3 text-center">Last 30 Cycles</SelectItem>
+                <SelectItem value="90d" className="text-[10px] font-bold uppercase py-3 text-center">Quarterly Phase</SelectItem>
+                <SelectItem value="all" className="text-[10px] font-bold uppercase py-3 text-center">Archive History</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
-        {/* Primary Stats */}
+        {/* Primary Matrix */}
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {isLoading ? Array(4).fill(0).map((_, i) => <StatCardSkeleton key={i} />) :
             statCards.map((card) => (
-              <Card key={card.title} className="rounded-2xl border border-border/50 shadow-none bg-card/50 overflow-hidden group hover:border-border transition-colors">
-                <CardContent className="p-6 space-y-4">
+              <Card key={card.title} className="rounded-[2rem] border border-border/40 shadow-none bg-card/40 overflow-hidden hover:bg-card/60 transition-all cursor-default group hover:border-primary/10">
+                <CardContent className="p-8 space-y-6">
                   <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-50">
+                    <p className="text-[9px] font-black uppercase tracking-[0.25em] text-muted-foreground opacity-30 group-hover:opacity-100 transition-opacity">
                       {card.title}
                     </p>
-                    <div className={`p-2 rounded-xl ${card.accent}`}>
+                    <div className={`p-2.5 rounded-2xl ${card.accent} shadow-sm transition-transform group-hover:rotate-12`}>
                       {card.icon}
                     </div>
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     <h3 className="text-3xl font-black tracking-tightest font-sans">{card.value}</h3>
-                    <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-tight opacity-40">{card.description}</p>
+                    <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest opacity-40">{card.description}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -179,58 +173,62 @@ export default function DashboardPage() {
           }
         </div>
 
-        {/* Operational Grid */}
+        {/* Performance Architecture */}
         <div className="grid gap-8 md:grid-cols-12">
-          {/* Main Chart */}
-          <Card className="md:col-span-8 rounded-3xl border shadow-none overflow-hidden bg-card/30">
-            <CardHeader className="bg-muted/10 border-b p-8 pb-6">
+          {/* Main Chart Architecture */}
+          <Card className="md:col-span-8 rounded-[2.5rem] border border-border/40 shadow-none overflow-hidden bg-card/20 backdrop-blur-sm relative group">
+            <div className="absolute top-0 right-0 p-8 opacity-[0.02] pointer-events-none group-hover:opacity-[0.05] transition-opacity duration-1000">
+              <Zap size={200} />
+            </div>
+            <CardHeader className="bg-muted/10 border-b border-border/40 p-10 pb-8">
               <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg font-black tracking-tightest uppercase font-sans">Growth Dynamics</CardTitle>
-                  <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground opacity-50 mt-1">Fiscal year projection vs actuals</CardDescription>
+                <div className="space-y-1">
+                  <CardTitle className="text-xl font-black tracking-tighter uppercase font-sans">Growth Architecture</CardTitle>
+                  <CardDescription className="text-[9px] uppercase font-black tracking-[0.2em] text-muted-foreground opacity-40">Capital inflow vs operational burn</CardDescription>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-emerald-500" /><span className="text-[9px] font-black uppercase opacity-60">Revenue</span></div>
-                  <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-rose-500" /><span className="text-[9px] font-black uppercase opacity-60">Costs</span></div>
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]" /><span className="text-[8px] font-black uppercase tracking-widest opacity-40">Inflow</span></div>
+                  <div className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-rose-500 shadow-[0_0_10px_#f43f5e]" /><span className="text-[8px] font-black uppercase tracking-widest opacity-40">Outflow</span></div>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-8 pt-10">
-              {isLoading ? <Skeleton className="h-[320px] w-full rounded-2xl" /> :
-                <div className="h-[320px] w-full">
+            <CardContent className="p-10 pt-12">
+              {isLoading ? <Skeleton className="h-[350px] w-full rounded-2xl" /> :
+                <div className="h-[350px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={monthlyData}>
                       <defs>
-                        <linearGradient id="colorInc" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.08} />
+                        <linearGradient id="cInc" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.1} />
                           <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                         </linearGradient>
-                        <linearGradient id="colorExp" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.08} />
+                        <linearGradient id="cExp" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.1} />
                           <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="6 6" vertical={false} stroke="#e2e8f0" opacity={0.4} />
+                      <CartesianGrid strokeDasharray="8 8" vertical={false} stroke="#e2e8f0" opacity={0.3} />
                       <XAxis
                         dataKey="month"
                         axisLine={false}
                         tickLine={false}
-                        tick={{ fontSize: 9, fontWeight: 900, fill: '#64748b', textTransform: 'uppercase' }}
-                        dy={15}
+                        tick={{ fontSize: 8, fontWeight: 900, fill: '#94a3b8', textTransform: 'uppercase' }}
+                        dy={20}
                       />
                       <YAxis
                         axisLine={false}
                         tickLine={false}
-                        tick={{ fontSize: 9, fontWeight: 900, fill: '#64748b' }}
-                        width={45}
+                        tick={{ fontSize: 8, fontWeight: 900, fill: '#94a3b8' }}
+                        width={50}
                       />
                       <Tooltip
-                        contentStyle={{ borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 20px 50px rgba(0,0,0,0.1)', padding: '16px' }}
-                        itemStyle={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' }}
-                        labelStyle={{ fontSize: '11px', fontWeight: '900', marginBottom: '8px', opacity: 0.5 }}
+                        contentStyle={{ borderRadius: '24px', border: 'none', background: 'white', boxShadow: '0 30px 60px rgba(0,0,0,0.1)', padding: '24px' }}
+                        itemStyle={{ fontSize: '9px', fontWeight: '900', textTransform: 'uppercase', padding: '4px 0' }}
+                        labelStyle={{ fontSize: '10px', fontWeight: '900', marginBottom: '12px', opacity: 0.3, letterSpacing: '0.1em' }}
+                        cursor={{ stroke: '#cbd5e1', strokeWidth: 1 }}
                       />
-                      <Area type="monotone" dataKey="income" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorInc)" />
-                      <Area type="monotone" dataKey="expenses" stroke="#f43f5e" strokeWidth={3} fillOpacity={1} fill="url(#colorExp)" />
+                      <Area type="monotone" dataKey="income" stroke="#10b981" strokeWidth={4} fillOpacity={1} fill="url(#cInc)" />
+                      <Area type="monotone" dataKey="expenses" stroke="#f43f5e" strokeWidth={4} fillOpacity={1} fill="url(#cExp)" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -238,59 +236,65 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Drilldown Vitals */}
+          {/* Core Vitals */}
           <div className="md:col-span-4 space-y-8">
-            <Card className="rounded-3xl border shadow-none bg-card/50">
-              <CardHeader className="p-8 pb-2">
-                <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground opacity-50">Operational Vitals</CardTitle>
+            <Card className="rounded-[2.5rem] border border-border/40 shadow-none bg-card/40 backdrop-blur-sm">
+              <CardHeader className="p-10 pb-4">
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-30">Operational Vitals</CardTitle>
               </CardHeader>
-              <CardContent className="p-8 space-y-8">
-                <div className="grid grid-cols-2 gap-x-6 gap-y-8">
-                  {isLoading ? Array(4).fill(0).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-lg" />) :
+              <CardContent className="p-10 pt-0 space-y-10">
+                <div className="grid grid-cols-1 gap-8">
+                  {isLoading ? Array(4).fill(0).map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-2xl" />) :
                     drillingMetrics.map((item) => (
-                      <div key={item.label} className="space-y-1">
-                        <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-40">{item.label}</span>
-                        <p className={`text-sm font-black tracking-tightest ${item.color}`}>NPR {item.value.toLocaleString()}</p>
+                      <div key={item.label} className="group cursor-default">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[8px] font-black uppercase tracking-[0.1em] text-muted-foreground opacity-40 group-hover:opacity-100 transition-opacity">{item.label}</span>
+                          <ArrowUpRight size={10} className="opacity-[0.05] group-hover:opacity-40" />
+                        </div>
+                        <p className={`text-xl font-black tracking-tightest ${item.color}`}>NPR {item.value.toLocaleString()}</p>
+                        <p className="text-[7px] font-black text-muted-foreground uppercase tracking-widest opacity-20 mt-1">{item.detail}</p>
                       </div>
                     ))
                   }
                 </div>
 
-                <div className="space-y-5 pt-4 border-t border-dashed">
-                  {isLoading ? null : (metrics as any).completed_tasks > 0 && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest">
-                        <span className="opacity-40">Efficiency Rate</span>
-                        <span className="text-emerald-500">{Math.round(((metrics as any).completed_tasks / (metrics as any).total_tasks) * 100)}%</span>
+                <div className="space-y-6 pt-8 border-t border-border/30 border-dashed">
+                  {isLoading ? null : (metrics as any).total_tasks > 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-[0.2em]">
+                        <span className="opacity-30">Delivery Velocity</span>
+                        <span className="text-emerald-500 font-black">{Math.round(((metrics as any).completed_tasks / (metrics as any).total_tasks) * 100)}% Unit Completion</span>
                       </div>
-                      <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${((metrics as any).completed_tasks / (metrics as any).total_tasks) * 100}%` }} />
+                      <div className="h-2 w-full bg-muted/40 rounded-full overflow-hidden p-[2px] ring-1 ring-border/20">
+                        <div className="h-full bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.4)]" style={{ width: `${((metrics as any).completed_tasks / (metrics as any).total_tasks) * 100}%` }} />
                       </div>
                     </div>
                   )}
-                  <div className="flex items-center justify-between p-4 rounded-2xl bg-muted/30 border border-border/50">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-background border shadow-sm text-primary"><ArrowUpRight size={14} /></div>
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-tight">System Status</p>
-                        <p className="text-[9px] font-bold text-muted-foreground uppercase opacity-40 tracking-widest">Stable / Nominal</p>
+                  <div className="p-6 rounded-[1.8rem] bg-emerald-500/5 ring-1 ring-emerald-500/10 border-none shadow-none group active:scale-95 transition-all">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4 text-emerald-600">
+                        <Zap size={18} fill="currentColor" />
+                        <div>
+                          <p className="text-[9px] font-black uppercase tracking-widest">Health</p>
+                          <p className="text-[10px] font-bold uppercase opacity-60">Stable Node</p>
+                        </div>
                       </div>
+                      <div className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
                     </div>
-                    <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="rounded-3xl border shadow-none bg-primary text-primary-foreground overflow-hidden relative group">
-              <CardContent className="p-8 space-y-4">
-                <div className="relative z-10 space-y-1">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">Accounts Receivable</p>
-                  <h3 className="text-3xl font-black tracking-tightest">NPR {(metrics as any)?.pending_income?.toLocaleString() || "0"}</h3>
-                  <p className="text-[9px] font-bold uppercase tracking-widest opacity-30">Outstanding balance from clients</p>
+            <Card className="rounded-[2.5rem] border-none bg-primary text-primary-foreground shadow-2xl overflow-hidden relative group cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all">
+              <CardContent className="p-10 space-y-4">
+                <div className="relative z-10 space-y-2">
+                  <p className="text-[9px] font-black uppercase tracking-[0.3em] opacity-40 font-sans">Accounts Receivable</p>
+                  <h3 className="text-4xl font-black tracking-tightest">NPR {(metrics as any)?.pending_income?.toLocaleString() || "0"}</h3>
+                  <p className="text-[8px] font-black uppercase tracking-widest opacity-30 mt-2">Outstanding client credit ledger</p>
                 </div>
-                <div className="absolute top-[-10%] right-[-10%] opacity-10 group-hover:rotate-12 transition-transform duration-1000">
-                  <DollarSign size={140} />
+                <div className="absolute top-[-10%] right-[-10%] opacity-[0.08] group-hover:rotate-45 transition-transform duration-1000 scale-125">
+                  <DollarSign size={200} />
                 </div>
               </CardContent>
             </Card>
@@ -303,12 +307,12 @@ export default function DashboardPage() {
 
 function StatCardSkeleton() {
   return (
-    <Card className="rounded-2xl border shadow-none">
-      <CardContent className="p-6 space-y-4">
-        <Skeleton className="h-3 w-16" />
+    <Card className="rounded-[2rem] border border-border/40 shadow-none">
+      <CardContent className="p-8 space-y-6">
+        <Skeleton className="h-4 w-12 rounded-full" />
         <div className="space-y-2">
-          <Skeleton className="h-8 w-32" />
-          <Skeleton className="h-2 w-48" />
+          <Skeleton className="h-10 w-44 rounded-lg" />
+          <Skeleton className="h-2 w-32 rounded-full" />
         </div>
       </CardContent>
     </Card>
