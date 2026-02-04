@@ -132,13 +132,13 @@ export default function PaymentMethodsPage() {
         bank_name: bankDetails.bank_name,
         account_holder_name: bankDetails.account_holder_name,
         account_number: bankDetails.account_number,
-        bank_qr_code: finalBankQr,
+        bank_qr_code: finalBankQr || null,
         wallet_name: walletDetails.wallet_name,
         wallet_number: walletDetails.wallet_number,
-        wallet_qr_code: finalWalletQr,
+        wallet_qr_code: finalWalletQr || null,
       });
 
-      toast.success("Settings updated successfully");
+      toast.success("Accounts synchronized successfully");
       setBankQrFile(null);
       setWalletQrFile(null);
     } catch (error: any) {

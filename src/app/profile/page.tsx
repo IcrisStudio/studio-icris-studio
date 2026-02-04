@@ -26,7 +26,7 @@ export default function ProfilePage() {
   const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
   const [profilePicturePreview, setProfilePicturePreview] = useState<string>("");
 
-  const updateStaffProfile = useMutation(api.users.updateStaffProfile);
+  const updateUser = useMutation(api.users.update);
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 
   useEffect(() => {
@@ -80,16 +80,25 @@ export default function ProfilePage() {
       let profilePictureId = user?.profile_picture;
 
       if (profilePictureFile) {
-        profilePictureId = await handleFileUpload(profilePictureFile);
+        profilePictureId = (await handleFileUpload(profilePictureFile)) as any;
       }
 
-      await updateStaffProfile({
-        user_id: user!.id,
+      await updateUser({
+        userId: user!.id,
         full_name: profileData.full_name,
-        profile_picture: profilePictureId,
+        profile_picture: profilePictureId || undefined,
       });
 
-      toast.success("Profile saved successfully");
+      // Update local storage so the UI reflects the change on refresh or next load
+      const updatedUser = {
+        ...user,
+        full_name: profileData.full_name,
+        profile_picture: profilePictureId,
+      };
+      localStorage.setItem("studio_user", JSON.stringify(updatedUser));
+      // Note: In a real app we'd trigger a context refresh, but the user is already updated in localStorage.
+
+      toast.success("Profile updated accurately");
 
       if (user?.firstLoginRequired) {
         window.location.href = "/staff-dashboard";

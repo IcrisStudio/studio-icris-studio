@@ -187,34 +187,36 @@ export const disable = mutation({
 export const updateStaffProfile = mutation({
   args: {
     user_id: v.id("users"),
-    role_name: v.string(),
-    payment_method: v.string(),
+    role_name: v.optional(v.string()),
+    payment_method: v.optional(v.string()),
     bank_name: v.optional(v.string()),
     account_holder_name: v.optional(v.string()),
     account_number: v.optional(v.string()),
-    bank_qr_code: v.optional(v.id("_storage")),
+    bank_qr_code: v.optional(v.union(v.id("_storage"), v.null())),
     wallet_name: v.optional(v.string()),
     wallet_number: v.optional(v.string()),
-    wallet_qr_code: v.optional(v.id("_storage")),
+    wallet_qr_code: v.optional(v.union(v.id("_storage"), v.null())),
   },
   handler: async (ctx, args) => {
+    const { user_id, ...updates } = args;
+
     // Check if profile exists
     const existingProfile = await ctx.db
       .query("staff_profiles")
-      .withIndex("by_user_id", (q) => q.eq("user_id", args.user_id))
+      .withIndex("by_user_id", (q) => q.eq("user_id", user_id))
       .first();
 
-    const profileData = {
-      user_id: args.user_id,
-      role_name: args.role_name,
-      payment_method: args.payment_method,
-      bank_name: args.bank_name,
-      account_holder_name: args.account_holder_name,
-      account_number: args.account_number,
-      bank_qr_code: args.bank_qr_code,
-      wallet_name: args.wallet_name,
-      wallet_number: args.wallet_number,
-      wallet_qr_code: args.wallet_qr_code,
+    const profileData: any = {
+      user_id,
+      role_name: updates.role_name ?? existingProfile?.role_name ?? "Staff",
+      payment_method: updates.payment_method ?? existingProfile?.payment_method ?? "bank_transfer",
+      bank_name: updates.bank_name ?? existingProfile?.bank_name,
+      account_holder_name: updates.account_holder_name ?? existingProfile?.account_holder_name,
+      account_number: updates.account_number ?? existingProfile?.account_number,
+      bank_qr_code: updates.hasOwnProperty("bank_qr_code") ? updates.bank_qr_code : existingProfile?.bank_qr_code,
+      wallet_name: updates.wallet_name ?? existingProfile?.wallet_name,
+      wallet_number: updates.wallet_number ?? existingProfile?.wallet_number,
+      wallet_qr_code: updates.hasOwnProperty("wallet_qr_code") ? updates.wallet_qr_code : existingProfile?.wallet_qr_code,
       first_login_completed: true,
     };
 

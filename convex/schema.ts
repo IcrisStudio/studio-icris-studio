@@ -12,7 +12,7 @@ export default defineSchema({
     status: v.string(), // "active" or "disabled"
     created_at: v.number(),
   }).index("by_username", ["username"])
-   .index("by_status", ["status"]),
+    .index("by_status", ["status"]),
 
   // Staff profiles - extended profile info for staff members
   staff_profiles: defineTable({
@@ -23,11 +23,11 @@ export default defineSchema({
     bank_name: v.optional(v.string()),
     account_holder_name: v.optional(v.string()),
     account_number: v.optional(v.string()),
-    bank_qr_code: v.optional(v.id("_storage")),
+    bank_qr_code: v.optional(v.union(v.id("_storage"), v.null())),
     // Wallet details
     wallet_name: v.optional(v.string()), // "Khalti" or "eSewa"
     wallet_number: v.optional(v.string()),
-    wallet_qr_code: v.optional(v.id("_storage")),
+    wallet_qr_code: v.optional(v.union(v.id("_storage"), v.null())),
     first_login_completed: v.boolean(),
   }).index("by_user_id", ["user_id"]),
 
@@ -47,7 +47,7 @@ export default defineSchema({
     reference_files: v.optional(v.array(v.id("_storage"))),
     created_at: v.number(),
   }).index("by_status", ["status"])
-   .index("by_created_at", ["created_at"]),
+    .index("by_created_at", ["created_at"]),
 
   // Task assignments - links tasks to staff members
   task_assignments: defineTable({
@@ -58,8 +58,8 @@ export default defineSchema({
     payment_status: v.string(), // "pending", "paid"
     assigned_at: v.number(),
   }).index("by_task_id", ["task_id"])
-   .index("by_staff_id", ["staff_id"])
-   .index("by_payment_status", ["payment_status"]),
+    .index("by_staff_id", ["staff_id"])
+    .index("by_payment_status", ["payment_status"]),
 
   // Payments - salary payments to staff
   payments: defineTable({
@@ -71,8 +71,8 @@ export default defineSchema({
     created_at: v.number(),
     paid_at: v.optional(v.number()),
   }).index("by_staff_id", ["staff_id"])
-   .index("by_status", ["status"])
-   .index("by_created_at", ["created_at"]),
+    .index("by_status", ["status"])
+    .index("by_created_at", ["created_at"]),
 
   // Expenses - business expenses
   expenses: defineTable({
@@ -83,8 +83,8 @@ export default defineSchema({
     proof: v.optional(v.id("_storage")),
     created_at: v.number(),
   }).index("by_type", ["type"])
-   .index("by_date", ["date"])
-   .index("by_created_at", ["created_at"]),
+    .index("by_date", ["date"])
+    .index("by_created_at", ["created_at"]),
 
   // Taxes - tax assignments to tasks/projects
   taxes: defineTable({
@@ -100,6 +100,6 @@ export default defineSchema({
     proof: v.optional(v.id("_storage")),
     created_at: v.number(),
   }).index("by_status", ["tax_status"])
-   .index("by_task_id", ["task_id"])
-   .index("by_created_at", ["created_at"]),
+    .index("by_task_id", ["task_id"])
+    .index("by_created_at", ["created_at"]),
 });
