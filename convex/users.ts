@@ -192,10 +192,10 @@ export const updateStaffProfile = mutation({
     bank_name: v.optional(v.string()),
     account_holder_name: v.optional(v.string()),
     account_number: v.optional(v.string()),
-    bank_qr_code: v.optional(v.union(v.id("_storage"), v.null())),
+    bank_qr_code: v.optional(v.any()),
     wallet_name: v.optional(v.string()),
     wallet_number: v.optional(v.string()),
-    wallet_qr_code: v.optional(v.union(v.id("_storage"), v.null())),
+    wallet_qr_code: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
     const { user_id, ...updates } = args;
