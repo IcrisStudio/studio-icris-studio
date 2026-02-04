@@ -1,32 +1,62 @@
+"use client";
+
 import { useState, useEffect } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Loader2, Upload, X, CreditCard } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    CheckCircle2,
+    Loader2,
+    Upload,
+    Copy,
+    Building2,
+    Smartphone,
+    CreditCard,
+    ShieldCheck,
+} from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ProofPreview } from "@/components/ProofPreview";
+import { useStorageUrl } from "@/hooks/useStorageUrl";
 
 interface PaymentSheetProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    payment: any | null; // The payment record to process
+    payment: any | null;
 }
 
 export function PaymentSheet({ open, onOpenChange, payment }: PaymentSheetProps) {
     const processPayment = useMutation(api.payments.processPayment);
     const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 
+    const directProfile = useQuery(
+        api.users.getStaffProfile,
+        payment ? { user_id: payment.staff_id } : "skip"
+    );
+
     const [notes, setNotes] = useState("");
     const [file, setFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<string>("");
     const [isProcessing, setIsProcessing] = useState(false);
+
+    const staff = directProfile || payment?.staff_profile || {};
+    const profileImageUrl = useStorageUrl(staff.profile_picture);
+    const bankQrUrl = useStorageUrl(staff.bank_qr_code);
+    const walletQrUrl = useStorageUrl(staff.wallet_qr_code);
 
     useEffect(() => {
         if (open) {
@@ -47,12 +77,17 @@ export function PaymentSheet({ open, onOpenChange, payment }: PaymentSheetProps)
         }
     };
 
+    const handleCopy = (text: string) => {
+        if (!text) return;
+        navigator.clipboard.writeText(text);
+        toast.success("Copied to clipboard");
+    };
+
     const handleProcess = async () => {
         if (!payment) return;
         setIsProcessing(true);
         try {
             let storageId: string | null = null;
-
             if (file) {
                 const postUrl = await generateUploadUrl();
                 const result = await fetch(postUrl, {
@@ -64,17 +99,14 @@ export function PaymentSheet({ open, onOpenChange, payment }: PaymentSheetProps)
                 const json = await result.json();
                 storageId = json.storageId;
             }
-
             await processPayment({
                 paymentId: payment._id,
                 payment_proof: storageId as any,
                 notes: notes,
             });
-
-            toast.success("Payment processed successfully");
+            toast.success("Payment completed successfully");
             onOpenChange(false);
         } catch (error: any) {
-            console.error(error);
             toast.error(error.message || "Failed to process payment");
         } finally {
             setIsProcessing(false);
@@ -83,208 +115,258 @@ export function PaymentSheet({ open, onOpenChange, payment }: PaymentSheetProps)
 
     if (!payment) return null;
 
-    const staff = payment.staff_profile || {};
-    const isBank = staff.payment_method === "bank_transfer";
+    const isBank = (staff.payment_method || "bank_transfer") === "bank_transfer";
     const isCompleted = payment.status === "completed";
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent className="sm:max-w-[550px] w-full p-0 bg-background/95 backdrop-blur-xl border-l shadow-none">
-                <ScrollArea className="h-full">
-                    <div className="p-6 space-y-8">
-                        <SheetHeader>
-                            <SheetTitle className="text-2xl font-bold">
-                                {isCompleted ? "Payment Record" : "Process Payment"}
-                            </SheetTitle>
-                            <SheetDescription>
-                                {isCompleted ? "Details of this completed transaction." : "Review details and confirm transaction."}
-                            </SheetDescription>
-                        </SheetHeader>
+            <SheetContent className="w-full sm:max-w-xl p-0 overflow-hidden">
+                <SheetHeader className="px-6 py-6 border-b">
+                    <div className="flex items-center justify-between mb-2">
+                        <SheetTitle>Payment Details</SheetTitle>
+                        <Badge variant={isCompleted ? "secondary" : "outline"}>
+                            {isCompleted ? "Completed" : "Pending"}
+                        </Badge>
+                    </div>
+                    <SheetDescription>
+                        Transaction #{payment._id.slice(-8)}
+                    </SheetDescription>
+                </SheetHeader>
+
+                <ScrollArea className="h-[calc(100vh-140px)]">
+                    <div className="px-6 py-6 space-y-6">
 
                         {/* Amount Card */}
-                        <div className="bg-primary/5 rounded-2xl p-6 text-center border shadow-none border-primary/10">
-                            <p className="text-muted-foreground text-sm font-medium uppercase tracking-wider mb-2">Total Amount</p>
-                            <div className="text-5xl font-black text-primary tracking-tight">
-                                <span className="text-2xl align-top mr-1">NPR</span>
-                                {payment.amount.toLocaleString()}
-                            </div>
-                        </div>
-
-                        {/* Staff Details */}
-                        <div className="space-y-4">
-                            <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Recipient</h4>
-                            <div className="flex items-center gap-4 p-4 rounded-xl border bg-card shadow-none">
-                                <Avatar className="h-12 w-12 border shadow-none">
-                                    <AvatarImage src={staff.profile_picture} />
-                                    <AvatarFallback className="font-bold">{payment.staff_name?.[0]}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <div className="font-semibold text-lg leading-none">{payment.staff_name}</div>
-                                    <div className="text-sm text-muted-foreground mt-1">{staff.role_name}</div>
+                        <Card>
+                            <CardHeader className="pb-4">
+                                <CardTitle className="text-sm font-medium">Payment Amount</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-3xl font-bold">
+                                    NPR {payment.amount.toLocaleString()}
                                 </div>
-                            </div>
+                            </CardContent>
+                        </Card>
 
-                            <div className="p-4 rounded-xl border bg-card shadow-none space-y-3">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <CreditCard className="h-4 w-4 text-primary" />
-                                    <span className="font-medium">{isBank ? "Bank Transfer" : "Digital Wallet"}</span>
+                        {/* Recipient Info */}
+                        <Card>
+                            <CardHeader className="pb-4">
+                                <CardTitle className="text-sm font-medium">Recipient</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex items-center gap-4">
+                                    <Avatar className="h-12 w-12">
+                                        <AvatarImage src={profileImageUrl || ""} />
+                                        <AvatarFallback>{payment.staff_name?.[0]}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1">
+                                        <p className="font-semibold">{payment.staff_name}</p>
+                                        <p className="text-sm text-muted-foreground">{staff.role_name || "Staff"}</p>
+                                    </div>
+                                    <ShieldCheck className="h-5 w-5 text-emerald-500" />
                                 </div>
+                            </CardContent>
+                        </Card>
 
+                        {/* Payment Method Details */}
+                        <Card>
+                            <CardHeader className="pb-4">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-sm font-medium">
+                                        {isBank ? "Bank Transfer" : "Digital Wallet"}
+                                    </CardTitle>
+                                    {isBank ? <Building2 className="h-4 w-4" /> : <Smartphone className="h-4 w-4" />}
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
                                 {isBank ? (
-                                    <div className="space-y-6">
-                                        <div className="grid grid-cols-2 gap-y-4 text-sm">
-                                            <div>
-                                                <p className="text-muted-foreground text-xs font-bold uppercase tracking-tighter opacity-70">Bank Name</p>
-                                                <p className="font-bold text-base">{staff.bank_name || "N/A"}</p>
+                                    <>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-1">
+                                                <Label className="text-xs text-muted-foreground">Bank Name</Label>
+                                                <p className="font-medium">{staff.bank_name || "—"}</p>
                                             </div>
-                                            <div>
-                                                <p className="text-muted-foreground text-xs font-bold uppercase tracking-tighter opacity-70">Account Holder</p>
-                                                <p className="font-bold text-base">{staff.account_holder_name || "N/A"}</p>
-                                            </div>
-                                            <div className="col-span-2 bg-muted/30 p-4 rounded-xl border-border/50 border">
-                                                <p className="text-muted-foreground text-xs font-bold uppercase tracking-tighter opacity-70 mb-1">Account Number</p>
-                                                <p className="font-mono text-xl font-black tracking-tight select-all">{staff.account_number || "N/A"}</p>
+                                            <div className="space-y-1">
+                                                <Label className="text-xs text-muted-foreground">Account Holder</Label>
+                                                <p className="font-medium">{staff.account_holder_name || "—"}</p>
                                             </div>
                                         </div>
 
-                                        {/* QR Code Section */}
-                                        <div className="pt-2">
-                                            <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest mb-3">Scan-to-Pay QR</p>
-                                            {staff.bank_qr_code ? (
-                                                <div className="bg-white p-3 rounded-2xl border w-fit shadow-xl shadow-black/5 mx-auto sm:mx-0 ring-1 ring-border">
-                                                    <div className="h-40 w-40 overflow-hidden rounded-xl">
-                                                        <ProofPreview storageId={staff.bank_qr_code} />
+                                        <Separator />
+
+                                        <div className="space-y-1">
+                                            <Label className="text-xs text-muted-foreground">Account Number</Label>
+                                            <div className="flex items-center justify-between gap-2">
+                                                <p className="font-mono font-semibold">{staff.account_number || "—"}</p>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleCopy(staff.account_number)}
+                                                >
+                                                    <Copy className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        {staff.bank_qr_code && bankQrUrl && (
+                                            <>
+                                                <Separator />
+                                                <div className="space-y-3">
+                                                    <Label className="text-xs text-muted-foreground">Payment QR Code</Label>
+                                                    <div className="w-full p-6 bg-muted rounded-lg">
+                                                        <div className="w-full aspect-square max-w-sm mx-auto">
+                                                            <img
+                                                                src={bankQrUrl}
+                                                                alt="Bank QR Code"
+                                                                className="w-full h-full object-contain"
+                                                            />
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            ) : (
-                                                <div className="p-6 rounded-2xl bg-orange-50/50 border border-orange-100 border-dashed text-center">
-                                                    <p className="text-xs font-bold text-orange-700">No QR Code Available</p>
-                                                    <p className="text-[10px] text-orange-600 font-medium mt-1">
-                                                        Staff QR codes are highly suggested for faster processing.
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
+                                            </>
+                                        )}
+                                    </>
                                 ) : (
-                                    <div className="space-y-6">
-                                        <div className="space-y-4 text-sm">
-                                            <div className="bg-muted/30 p-4 rounded-xl border-border/50 border">
-                                                <p className="text-muted-foreground text-xs font-bold uppercase tracking-tighter opacity-70 mb-1">{staff.wallet_name || "Wallet"} Number</p>
-                                                <p className="font-mono text-xl font-black tracking-tight select-all">{staff.wallet_number || "N/A"}</p>
+                                    <>
+                                        <div className="space-y-1">
+                                            <Label className="text-xs text-muted-foreground">{staff.wallet_name} Number</Label>
+                                            <div className="flex items-center justify-between gap-2">
+                                                <p className="font-mono font-semibold">{staff.wallet_number || "—"}</p>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleCopy(staff.wallet_number)}
+                                                >
+                                                    <Copy className="h-4 w-4" />
+                                                </Button>
                                             </div>
                                         </div>
 
-                                        {/* QR Code Section */}
-                                        <div className="pt-2">
-                                            <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest mb-3">Wallet QR Preview</p>
-                                            {staff.wallet_qr_code ? (
-                                                <div className="bg-white p-3 rounded-2xl border w-fit shadow-xl shadow-black/5 mx-auto sm:mx-0 ring-1 ring-border">
-                                                    <div className="h-40 w-40 overflow-hidden rounded-xl">
-                                                        <ProofPreview storageId={staff.wallet_qr_code} />
+                                        {staff.wallet_qr_code && walletQrUrl && (
+                                            <>
+                                                <Separator />
+                                                <div className="space-y-3">
+                                                    <Label className="text-xs text-muted-foreground">Wallet QR Code</Label>
+                                                    <div className="w-full p-6 bg-muted rounded-lg">
+                                                        <div className="w-full aspect-square max-w-sm mx-auto">
+                                                            <img
+                                                                src={walletQrUrl}
+                                                                alt="Wallet QR Code"
+                                                                className="w-full h-full object-contain"
+                                                            />
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            ) : (
-                                                <div className="p-6 rounded-2xl bg-orange-50/50 border border-orange-100 border-dashed text-center">
-                                                    <p className="text-xs font-bold text-orange-700">No Digital QR Provided</p>
-                                                    <p className="text-[10px] text-orange-600 font-medium mt-1">
-                                                        Suggest the staff to upload a QR for instant processing.
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
+                                            </>
+                                        )}
+                                    </>
                                 )}
-                            </div>
-                        </div>
+                            </CardContent>
+                        </Card>
 
-                        {/* Actions or Record Info */}
-                        <div className="space-y-4">
-                            <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                                {isCompleted ? "Transaction Detail" : "Transaction Record"}
-                            </h4>
-
-                            {isCompleted ? (
-                                <div className="space-y-4">
-                                    <div className="p-4 rounded-xl border bg-muted/30 shadow-none">
-                                        <p className="text-xs text-muted-foreground mb-1 uppercase tracking-tighter font-bold">Reference ID</p>
-                                        <p className="font-mono text-base break-all select-all">{payment.notes || "No reference provided"}</p>
+                        {/* Authorization Section */}
+                        {isCompleted ? (
+                            <Card>
+                                <CardHeader className="pb-4">
+                                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                                        Completed
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="space-y-1">
+                                        <Label className="text-xs text-muted-foreground">Reference</Label>
+                                        <p className="font-mono text-sm">{payment.notes || "—"}</p>
                                     </div>
 
                                     {payment.payment_proof && (
-                                        <div className="space-y-2">
-                                            <Label>Payment Receipt</Label>
-                                            <div className="rounded-xl border overflow-hidden p-1 bg-card">
-                                                <ProofPreview storageId={payment.payment_proof} />
+                                        <>
+                                            <Separator />
+                                            <div className="space-y-2">
+                                                <Label className="text-xs text-muted-foreground">Receipt</Label>
+                                                <div className="rounded-lg overflow-hidden border">
+                                                    <div className="h-48">
+                                                        <ProofPreview storageId={payment.payment_proof} />
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
+                                        </>
                                     )}
 
-                                    <div className="flex items-center justify-between text-sm pt-4 border-t">
-                                        <span className="text-muted-foreground">Processed On</span>
-                                        <span className="font-medium">{format(payment.paid_at || payment.created_at, "PPP p")}</span>
+                                    <Separator />
+
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-muted-foreground">Completed at</span>
+                                        <span className="font-medium">
+                                            {format(payment.paid_at || payment.created_at, "MMM d, yyyy HH:mm")}
+                                        </span>
                                     </div>
-                                </div>
-                            ) : (
-                                <>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <Card>
+                                <CardHeader className="pb-4">
+                                    <CardTitle className="text-sm font-medium">Complete Payment</CardTitle>
+                                    <CardDescription>Enter transaction details to finalize</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
                                     <div className="space-y-2">
-                                        <Label>Transaction Reference / ID</Label>
+                                        <Label htmlFor="reference">Transaction Reference *</Label>
                                         <Input
-                                            placeholder="e.g. 238290382092"
+                                            id="reference"
+                                            placeholder="Enter reference number"
                                             value={notes}
                                             onChange={(e) => setNotes(e.target.value)}
-                                            className="shadow-none border-muted-foreground/20"
                                         />
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label>Payment Proof (Optional)</Label>
-                                        <div className="border-2 border-dashed rounded-xl p-4 text-center hover:bg-muted/50 transition-colors cursor-pointer relative">
+                                        <Label htmlFor="proof">Payment Proof (Optional)</Label>
+                                        <div className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-muted/50 transition-colors">
                                             <input
+                                                id="proof"
                                                 type="file"
                                                 accept="image/*"
-                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                className="hidden"
                                                 onChange={handleFileChange}
                                             />
-                                            {preview ? (
-                                                <div className="relative">
-                                                    <img src={preview} alt="Proof" className="max-h-32 mx-auto rounded-lg" />
-                                                    <Button
-                                                        variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full shadow-none"
-                                                        onClick={(e) => {
-                                                            e.preventDefault();
-                                                            setFile(null);
-                                                            setPreview("");
-                                                        }}
-                                                    >
-                                                        <X className="h-3 w-3" />
-                                                    </Button>
-                                                </div>
-                                            ) : (
-                                                <div className="py-4">
-                                                    <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                                                    <p className="text-sm text-muted-foreground">Click to upload receipt image</p>
-                                                </div>
-                                            )}
+                                            <label htmlFor="proof" className="cursor-pointer">
+                                                {preview ? (
+                                                    <div className="space-y-2">
+                                                        <img src={preview} alt="Preview" className="h-32 mx-auto rounded" />
+                                                        <p className="text-sm text-muted-foreground">Click to change</p>
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-2">
+                                                        <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
+                                                        <p className="text-sm text-muted-foreground">
+                                                            Click to upload receipt
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </label>
                                         </div>
                                     </div>
 
-                                    <div className="pt-4 pb-8">
-                                        <Button
-                                            className="w-full text-lg h-12 shadow-none"
-                                            onClick={handleProcess}
-                                            disabled={isProcessing || !notes}
-                                        >
-                                            {isProcessing ? (
-                                                <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...</>
-                                            ) : (
-                                                <><CheckCircle className="mr-2 h-5 w-5" /> Confirm Payment</>
-                                            )}
-                                        </Button>
-                                    </div>
-                                </>
-                            )}
-                        </div>
+                                    <Separator />
+
+                                    <Button
+                                        className="w-full"
+                                        disabled={isProcessing || !notes}
+                                        onClick={handleProcess}
+                                    >
+                                        {isProcessing ? (
+                                            <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Processing...
+                                            </>
+                                        ) : (
+                                            "Complete Transaction"
+                                        )}
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        )}
                     </div>
                 </ScrollArea>
             </SheetContent>

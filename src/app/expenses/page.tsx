@@ -13,20 +13,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
   Plus,
   Receipt,
   Loader2,
   Search,
-  Filter,
   TrendingDown,
-  ArrowUpRight,
-  PieChart as PieChartIcon,
   Calendar,
-  Briefcase,
-  Globe,
-  Shapes,
-  CreditCard
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -47,18 +41,11 @@ import {
 } from "recharts";
 
 const EXPENSE_TYPES = [
-  { value: "staff_salary", label: "Personnel & Payroll", icon: <Briefcase className="h-4 w-4" />, color: "#4f46e5" },
-  { value: "advertising", label: "Media & Acquisition", icon: <Globe className="h-4 w-4" />, color: "#0ea5e9" },
-  { value: "tools_and_software", label: "SaaS & Infrastructure", icon: <Shapes className="h-4 w-4" />, color: "#10b981" },
-  { value: "miscellaneous", label: "Operating Overheads", icon: <Receipt className="h-4 w-4" />, color: "#64748b" },
+  { value: "staff_salary", label: "Staff Salary", color: "#3b82f6" },
+  { value: "advertising", label: "Advertising", color: "#10b981" },
+  { value: "tools_and_software", label: "Tools & Software", color: "#f59e0b" },
+  { value: "miscellaneous", label: "Miscellaneous", color: "#6366f1" },
 ];
-
-const TYPE_STYLES: Record<string, { bg: string, text: string, ring: string }> = {
-  staff_salary: { bg: "bg-indigo-50/50", text: "text-indigo-700", ring: "ring-indigo-100" },
-  advertising: { bg: "bg-sky-50/50", text: "text-sky-700", ring: "ring-sky-100" },
-  tools_and_software: { bg: "bg-emerald-50/50", text: "text-emerald-700", ring: "ring-emerald-100" },
-  miscellaneous: { bg: "bg-slate-100/50", text: "text-slate-700", ring: "ring-slate-100" },
-};
 
 export default function ExpensesPage() {
   const { isAdmin } = useAuth();
@@ -91,7 +78,7 @@ export default function ExpensesPage() {
   const chartData = useMemo(() => {
     if (!expenseSummary?.by_type) return [];
     return EXPENSE_TYPES.map(type => ({
-      name: type.label.split(' ')[0],
+      name: type.label,
       value: expenseSummary.by_type[type.value as keyof typeof expenseSummary.by_type] || 0,
       color: type.color
     })).filter(d => d.value > 0);
@@ -100,11 +87,8 @@ export default function ExpensesPage() {
   if (!isAdmin) {
     return (
       <DashboardLayout>
-        <div className="flex h-[400px] flex-col items-center justify-center space-y-4">
-          <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center text-destructive">
-            <Filter size={20} />
-          </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">Administrative Seal Required</p>
+        <div className="flex h-[450px] items-center justify-center">
+          <p className="text-sm text-muted-foreground">Access restricted</p>
         </div>
       </DashboardLayout>
     );
@@ -114,129 +98,119 @@ export default function ExpensesPage() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      const amount = parseFloat(expenseForm.amount);
+      if (isNaN(amount) || amount <= 0) {
+        throw new Error("Please enter a valid amount");
+      }
       await createExpense({
         type: expenseForm.type,
-        amount: parseFloat(expenseForm.amount),
+        amount,
         description: expenseForm.description,
         date: new Date(expenseForm.date).getTime(),
       });
-      toast.success("Expense recorded and ledger synchronized");
+      toast.success("Expense added successfully");
       setIsCreateDialogOpen(false);
-      resetForm();
+      setExpenseForm({
+        type: "miscellaneous",
+        amount: "",
+        description: "",
+        date: new Date().toISOString().split("T")[0],
+      });
     } catch (error: any) {
-      toast.error(error.message || "Ledger sync failed");
+      toast.error(error.message || "Failed to add expense");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const resetForm = () => {
-    setExpenseForm({
-      type: "miscellaneous",
-      amount: "",
-      description: "",
-      date: new Date().toISOString().split("T")[0],
-    });
-  };
-
   return (
     <DashboardLayout>
-      <div className="container max-w-7xl animate-in fade-in duration-700 space-y-12 py-10">
+      <div className="container max-w-7xl space-y-8 py-8">
 
-        {/* Header Block */}
-        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <div className="space-y-1.5">
-            <h1 className="text-4xl font-black tracking-tighter uppercase font-sans">Expense Warehouse</h1>
-            <div className="flex items-center gap-3 text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] opacity-50">
-              <span className="flex items-center gap-1.5"><div className="h-1 w-1 rounded-full bg-rose-500" /> Capital Outflow</span>
-              <span>•</span>
-              <span>Audit Level Intelligence</span>
-            </div>
+        {/* Header */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Expenses</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Track and manage business expenses
+            </p>
           </div>
 
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="h-11 rounded-2xl px-8 text-[11px] font-black uppercase tracking-widest shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all">
-                <Plus className="h-4 w-4 mr-2" />
-                Deduct Capital
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Expense
               </Button>
             </DialogTrigger>
-            <DialogContent className="rounded-[2rem] border shadow-2xl max-w-md p-8 overflow-hidden">
-              <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
-                <TrendingDown size={140} />
-              </div>
+            <DialogContent>
               <DialogHeader>
-                <DialogTitle className="text-2xl font-black uppercase tracking-tighter">Expenditure Flow</DialogTitle>
-                <DialogDescription className="text-[10px] uppercase font-bold opacity-40 tracking-widest">Verify capital deduction for the master ledger.</DialogDescription>
+                <DialogTitle>Add New Expense</DialogTitle>
+                <DialogDescription>
+                  Record a new business expense
+                </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-8 pt-6">
-                <div className="space-y-6">
-                  <div className="space-y-2.5">
-                    <Label className="text-[10px] font-black uppercase opacity-60 tracking-[0.1em]">Allocation Type</Label>
-                    <Select
-                      value={expenseForm.type}
-                      onValueChange={(value) => setExpenseForm({ ...expenseForm, type: value })}
-                    >
-                      <SelectTrigger className="h-12 text-sm font-bold rounded-xl bg-muted/30 border-none shadow-none ring-1 ring-border focus:ring-primary/20 transition-all">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-2xl border shadow-2xl">
-                        {EXPENSE_TYPES.map((type) => (
-                          <SelectItem key={type.value} value={type.value} className="text-[10px] font-bold uppercase py-3">
-                            <div className="flex items-center gap-2">
-                              <div className="opacity-40">{type.icon}</div>
-                              {type.label}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2.5">
-                    <Label className="text-[10px] font-black uppercase opacity-60 tracking-[0.1em]">Magnitude (NPR)</Label>
-                    <div className="relative">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-black opacity-30">NPR</div>
-                      <Input
-                        type="number"
-                        value={expenseForm.amount}
-                        onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
-                        className="h-12 pl-12 text-sm font-black rounded-xl bg-muted/30 border-none shadow-none ring-1 ring-border focus:ring-primary/20"
-                        placeholder="0.00"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2.5">
-                    <Label className="text-[10px] font-black uppercase opacity-60 tracking-[0.1em]">Transaction Narrative</Label>
-                    <Textarea
-                      value={expenseForm.description}
-                      onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
-                      className="min-h-[100px] text-sm font-medium rounded-xl bg-muted/30 border-none shadow-none ring-1 ring-border resize-none p-4 focus:ring-primary/20"
-                      placeholder="Describe the utilization..."
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2.5">
-                    <Label className="text-[10px] font-black uppercase opacity-60 tracking-[0.1em]">Settlement Date</Label>
-                    <Input
-                      type="date"
-                      value={expenseForm.date}
-                      onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
-                      className="h-12 text-sm font-bold rounded-xl bg-muted/30 border-none shadow-none ring-1 ring-border focus:ring-primary/20"
-                      required
-                    />
-                  </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="type">Category</Label>
+                  <Select
+                    value={expenseForm.type}
+                    onValueChange={(value) => setExpenseForm({ ...expenseForm, type: value })}
+                  >
+                    <SelectTrigger id="type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EXPENSE_TYPES.map(type => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <div className="flex gap-4 pt-2">
-                  <Button type="button" variant="ghost" className="flex-1 h-12 text-[10px] font-black uppercase tracking-widest rounded-xl" onClick={() => setIsCreateDialogOpen(false)}>
-                    Abort
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Amount (NPR)</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    placeholder="0.00"
+                    value={expenseForm.amount}
+                    onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Enter expense details"
+                    value={expenseForm.description}
+                    onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="date">Date</Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={expenseForm.date}
+                    onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-4">
+                  <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="flex-1">
+                    Cancel
                   </Button>
-                  <Button type="submit" disabled={isSubmitting} className="flex-[2] h-12 text-[10px] font-black uppercase tracking-widest rounded-xl shadow-xl">
-                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Authorize Payout"}
+                  <Button type="submit" disabled={isSubmitting} className="flex-1">
+                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Add Expense
                   </Button>
                 </div>
               </form>
@@ -244,175 +218,201 @@ export default function ExpensesPage() {
           </Dialog>
         </div>
 
-        {/* Intelligence Matrix */}
-        <div className="grid gap-8 md:grid-cols-12">
-          {/* Visual Analytics */}
-          <Card className="md:col-span-4 rounded-[2.5rem] border shadow-none bg-card/40 overflow-hidden relative group border-border/40">
-            <CardHeader className="p-8 pb-0">
-              <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground opacity-40">Capital Distribution</CardTitle>
+        {/* Summary Cards */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+              <TrendingDown className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <div className="h-[280px] w-full mt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={70}
-                    outerRadius={100}
-                    paddingAngle={8}
-                    dataKey="value"
-                    stroke="none"
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} opacity={0.8} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip
-                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.1)', padding: '12px' }}
-                    itemStyle={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="p-8 pt-0 grid grid-cols-2 gap-x-4 gap-y-3">
-              {chartData.map((item) => (
-                <div key={item.name} className="flex items-center gap-2">
-                  <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: item.color }} />
-                  <span className="text-[9px] font-black uppercase opacity-40 tracking-wider truncate">{item.name}</span>
-                </div>
-              ))}
-            </div>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                NPR {(expenseSummary?.total || 0).toLocaleString()}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                All time expenses
+              </p>
+            </CardContent>
           </Card>
 
-          {/* Performance Tiles */}
-          <div className="md:col-span-8 space-y-8">
-            <div className="grid gap-6 sm:grid-cols-2">
-              <Card className="rounded-[2.5rem] border bg-primary text-primary-foreground shadow-2xl relative overflow-hidden group">
-                <CardContent className="p-8 space-y-6">
-                  <div className="p-3 rounded-2xl bg-white/10 w-fit">
-                    <TrendingDown size={24} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">Total Burn Magnitude</p>
-                    <h3 className="text-4xl font-black tracking-tightest">NPR {expenseSummary?.total?.toLocaleString() || 0}</h3>
-                  </div>
-                  <div className="absolute top-0 right-0 p-8 text-white opacity-[0.03] rotate-12 pointer-events-none group-hover:scale-110 transition-transform duration-1000">
-                    <CreditCard size={180} />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="grid grid-cols-2 gap-4">
-                {EXPENSE_TYPES.slice(0, 4).map((type) => (
-                  <Card key={type.value} className="rounded-3xl border border-border/40 shadow-none bg-card/20 hover:bg-card/50 transition-all cursor-default group">
-                    <CardContent className="p-6 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="p-2 rounded-xl bg-muted/40 group-hover:scale-110 transition-transform">{type.icon}</div>
-                        <ArrowUpRight size={14} className="opacity-[0.05] group-hover:opacity-20 transition-opacity" />
-                      </div>
-                      <div>
-                        <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-40 truncate">{type.label.split(' ')[0]}</p>
-                        <h4 className="text-md font-black tracking-tightest mt-1">
-                          NPR {(expenseSummary?.by_type?.[type.value as keyof typeof expenseSummary.by_type] || 0).toLocaleString()}
-                        </h4>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">This Month</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                NPR {(expenseSummary?.this_month || 0).toLocaleString()}
               </div>
-            </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Current month spending
+              </p>
+            </CardContent>
+          </Card>
 
-            {/* Ledger Table */}
-            <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-                <div className="relative w-full sm:w-80">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-30" />
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Transactions</CardTitle>
+              <Receipt className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {expenses?.length || 0}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Total expense records
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Chart and Filters */}
+        <div className="grid gap-4 md:grid-cols-7">
+          <Card className="md:col-span-3">
+            <CardHeader>
+              <CardTitle>Expense Breakdown</CardTitle>
+              <CardDescription>Distribution by category</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {chartData.length > 0 ? (
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={chartData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {chartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <RechartsTooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center text-sm text-muted-foreground">
+                  No expense data
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="md:col-span-4">
+            <CardHeader>
+              <CardTitle>Category Summary</CardTitle>
+              <CardDescription>Spending by type</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {EXPENSE_TYPES.map(type => {
+                const amount = expenseSummary?.by_type?.[type.value as keyof typeof expenseSummary.by_type] || 0;
+                const percentage = expenseSummary?.total ? (amount / expenseSummary.total) * 100 : 0;
+
+                return (
+                  <div key={type.value} className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">{type.label}</span>
+                      <span className="font-semibold">NPR {amount.toLocaleString()}</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full"
+                        style={{
+                          width: `${percentage}%`,
+                          backgroundColor: type.color
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Expense List */}
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <CardTitle>Expense History</CardTitle>
+                <CardDescription>All recorded expenses</CardDescription>
+              </div>
+
+              <div className="flex gap-2">
+                <div className="relative flex-1 md:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Scan ledger narratives..."
+                    placeholder="Search expenses..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="h-12 pl-11 text-xs font-bold rounded-2xl bg-card/60 border-none shadow-none ring-1 ring-border focus:ring-primary/10 transition-all"
+                    className="pl-9"
                   />
                 </div>
 
-                <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 w-full sm:w-auto scrollbar-hide">
-                  <Button
-                    variant={typeFilter === "all" ? "secondary" : "ghost"}
-                    size="sm"
-                    onClick={() => setTypeFilter("all")}
-                    className="h-9 text-[9px] font-black uppercase tracking-widest rounded-xl px-4"
-                  >
-                    All Entries
-                  </Button>
-                  {EXPENSE_TYPES.map(type => (
-                    <Button
-                      key={type.value}
-                      variant={typeFilter === type.value ? "secondary" : "ghost"}
-                      size="sm"
-                      onClick={() => setTypeFilter(type.value)}
-                      className="h-9 text-[9px] font-black uppercase tracking-widest rounded-xl px-4 whitespace-nowrap"
-                    >
-                      {type.label.split(' ')[0]}
-                    </Button>
-                  ))}
-                </div>
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Filter by type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {EXPENSE_TYPES.map(type => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-
-              <Card className="rounded-[2.5rem] border border-border/40 shadow-none bg-card/20 overflow-hidden">
-                <Table>
-                  <TableHeader className="bg-muted/10 border-b border-border/40">
-                    <TableRow className="hover:bg-transparent border-none h-14">
-                      <TableHead className="text-[9px] font-black uppercase tracking-widest px-8">Settlement Date</TableHead>
-                      <TableHead className="text-[9px] font-black uppercase tracking-widest">Disbursement Narrative</TableHead>
-                      <TableHead className="text-[9px] font-black uppercase tracking-widest">Classification</TableHead>
-                      <TableHead className="text-[9px] font-black uppercase tracking-widest text-right px-8">Magnitude</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredExpenses.length > 0 ? (
-                      filteredExpenses.map((expense) => {
-                        const style = TYPE_STYLES[expense.type] || TYPE_STYLES.miscellaneous;
-                        return (
-                          <TableRow key={expense._id} className="hover:bg-primary/[0.02] transition-colors h-20 border-border/30">
-                            <TableCell className="px-8 text-[10px] font-black tracking-widest text-muted-foreground uppercase opacity-40">
-                              {format(new Date(expense.date), "MMM d, yyyy")}
-                            </TableCell>
-                            <TableCell>
-                              <div className="max-w-[400px]">
-                                <p className="text-xs font-bold leading-relaxed">{expense.description}</p>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className={`h-7 rounded-xl border-none shadow-none ring-1 px-3 text-[8px] font-black uppercase tracking-widest ${style.bg} ${style.text} ${style.ring}`}>
-                                {EXPENSE_TYPES.find(t => t.value === expense.type)?.label.split(' ')[0]}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="px-8 text-right">
-                              <div className="space-y-0.5">
-                                <p className="text-sm font-black tracking-tightest">NPR {expense.amount.toLocaleString()}</p>
-                                <div className="text-[8px] font-black uppercase opacity-20 tracking-tighter">Verified</div>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={4} className="h-60 text-center">
-                          <div className="flex flex-col items-center gap-3 opacity-20">
-                            <Search size={40} strokeWidth={1} />
-                            <span className="text-[10px] font-black uppercase tracking-widest">Negligible Ledger Data</span>
-                          </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredExpenses.length > 0 ? (
+                  filteredExpenses.map((expense: any) => {
+                    const typeConfig = EXPENSE_TYPES.find(t => t.value === expense.type);
+                    return (
+                      <TableRow key={expense._id}>
+                        <TableCell className="text-sm">
+                          {format(new Date(expense.date), "MMM d, yyyy")}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="text-xs">
+                            {typeConfig?.label || expense.type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm">{expense.description}</TableCell>
+                        <TableCell className="text-right font-semibold">
+                          NPR {expense.amount.toLocaleString()}
                         </TableCell>
                       </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </Card>
-            </div>
-          </div>
-        </div>
+                    );
+                  })
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center h-32 text-sm text-muted-foreground">
+                      No expenses found
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );

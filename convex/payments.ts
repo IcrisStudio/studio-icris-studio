@@ -9,10 +9,27 @@ export const list = query({
     const result: any[] = [];
     for (const payment of payments) {
       const staff = await ctx.db.get(payment.staff_id);
+      const staffProfile = await ctx.db
+        .query("staff_profiles")
+        .withIndex("by_user_id", (q) => q.eq("user_id", payment.staff_id))
+        .first();
+
+      // Unified profile for the frontend - merging User + Profile details
+      const enrichedProfile = {
+        ...(staffProfile || {}),
+        full_name: staff?.full_name,
+        username: staff?.username,
+        profile_picture: staff?.profile_picture,
+        // Ensure defaults if record is missing
+        payment_method: staffProfile?.payment_method || "bank_transfer",
+        role_name: staffProfile?.role_name || "Staff",
+      };
+
       result.push({
         ...payment,
-        staff_name: staff?.full_name,
+        staff_name: staff?.full_name || "Unknown Identity",
         staff_username: staff?.username,
+        staff_profile: enrichedProfile,
       });
     }
 
@@ -39,11 +56,20 @@ export const getPendingPayments = query({
         .withIndex("by_user_id", (q) => q.eq("user_id", payment.staff_id))
         .first();
 
+      const enrichedProfile = {
+        ...(staffProfile || {}),
+        full_name: staff?.full_name,
+        username: staff?.username,
+        profile_picture: staff?.profile_picture,
+        payment_method: staffProfile?.payment_method || "bank_transfer",
+        role_name: staffProfile?.role_name || "Staff",
+      };
+
       result.push({
         ...payment,
-        staff_name: staff?.full_name,
+        staff_name: staff?.full_name || "Unknown Identity",
         staff_username: staff?.username,
-        staff_profile: staffProfile,
+        staff_profile: enrichedProfile,
       });
     }
 
