@@ -107,11 +107,6 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-4 p-3 bg-muted rounded-md text-xs text-muted-foreground">
-            <p className="font-semibold mb-1">Default Admin Account:</p>
-            <p>Username: admin@icrisstudio.com</p>
-            <p>Password: admin</p>
-          </div>
         </CardContent>
       </Card>
     </div>
